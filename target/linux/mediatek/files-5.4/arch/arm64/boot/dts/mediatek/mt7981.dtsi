@@ -436,6 +436,7 @@
 		resets = <&ethsys 0>;
 		reset-names = "mtketh";
 		status = "disabled";
+		mtketh-ppe-num = <2>;
 	};
 
 	sgmiisys0: syscon@10060000 {

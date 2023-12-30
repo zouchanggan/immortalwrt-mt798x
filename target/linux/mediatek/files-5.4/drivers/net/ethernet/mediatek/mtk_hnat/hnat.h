@@ -857,7 +857,7 @@ enum FoeIpAct {
 	((!strncmp((dev)->name, hnat_priv->wan, strlen(hnat_priv->wan))) || ((!strncmp((dev)->name, "macvlan", 7)) && \
 		(hnat_priv->macvlan_support)))
 #define IS_LAN(dev) (!strncmp(dev->name, LAN_DEV_NAME, strlen(LAN_DEV_NAME))) 
-#define IS_BR(dev) (!strncmp(dev->name, "br", 2))
+#define IS_BR(dev) ((!strncmp(dev->name, "br", 2)) || (!strncmp(dev->name, "ra", 2)) || (!strncmp(dev->name, "eth", 3)))
 #define IS_WHNAT(dev)								\
 	((hnat_priv->data->whnat &&						\
 	 (get_wifi_hook_if_index_from_dev(dev) != 0)) ? 1 : 0)
@@ -919,8 +919,21 @@ enum FoeIpAct {
 #define NEXTHDR_IPIP 4
 #endif
 
+#define UDF_PINGPONG_IFIDX GENMASK(3, 0)
+#define UDF_HNAT_PRE_FILLED BIT(4)
+
 extern const struct of_device_id of_hnat_match[];
 extern struct mtk_hnat *hnat_priv;
+
+static inline int is_hnat_pre_filled(struct foe_entry *entry)
+{
+	u32 udf = 0;
+	if (IS_IPV4_GRP(entry))
+		udf = entry->ipv4_hnapt.act_dp;
+	else
+		udf = entry->ipv6_5t_route.act_dp;
+	return !!(udf & UDF_HNAT_PRE_FILLED);
+}
 
 #if defined(CONFIG_NET_DSA_MT7530)
 u32 hnat_dsa_fill_stag(const struct net_device *netdev,

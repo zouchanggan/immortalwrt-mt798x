@@ -65,11 +65,19 @@ mediatek_setup_macs()
  		label_mac=$(mmc_get_mac_binary factory 0x0a)
  		wan_mac=$label_mac
  		lan_mac=$(macaddr_add "$label_mac" 2)
+ 		local wifi_mac="$(macaddr_add $lan_mac 1)"
+		echo "MacAddress=$wifi_mac" >> /etc/wireless/mediatek/mt7986.dbdc.b0.dat
+		wifi_mac="$(macaddr_add $lan_mac 2)"
+		echo "MacAddress=$wifi_mac" >> /etc/wireless/mediatek/mt7986.dbdc.b1.dat
  		;;
 	jdcloud,re-cp-03)
 		wan_mac=$(mmc_get_mac_binary factory 0x2a)
 		lan_mac=$(mmc_get_mac_binary factory 0x24)
 		label_mac=$lan_mac
+		local wifi_mac="$(macaddr_add $lan_mac 1)"
+		echo "MacAddress=$wifi_mac" >> /etc/wireless/mediatek/mt7986.dbdc.b0.dat
+		wifi_mac="$(macaddr_add $lan_mac 2)"
+		echo "MacAddress=$wifi_mac" >> /etc/wireless/mediatek/mt7986.dbdc.b1.dat
 		;;
  	tplink,tl-xdr6086|\
  	tplink,tl-xdr6088)
