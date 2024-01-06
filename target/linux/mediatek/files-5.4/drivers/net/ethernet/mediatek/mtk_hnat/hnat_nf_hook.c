@@ -2166,6 +2166,8 @@ static void mtk_hnat_nf_update(struct sk_buff *skb)
 			counter = acct->counter;
 			atomic64_add(diff.packets, &counter[CTINFO2DIR(ctinfo)].packets);
 			atomic64_add(diff.bytes, &counter[CTINFO2DIR(ctinfo)].bytes);
+			atomic64_set(&counter[CTINFO2DIR(ctinfo)].diff_packets, diff.packets);
+			atomic64_set(&counter[CTINFO2DIR(ctinfo)].diff_bytes, diff.bytes);
 		}
 	}
 }
