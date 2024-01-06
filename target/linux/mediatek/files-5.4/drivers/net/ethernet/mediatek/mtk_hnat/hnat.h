@@ -352,8 +352,8 @@ struct hnat_ipv4_hnapt {
 	u16 m_timestamp; /* For mcast*/
 	u16 resv1;
 	u32 resv2;
-	u32 resv3 : 26;
-	u32 act_dp : 6; /* UDF */
+	u32 resv3 : 24;
+	u32 act_dp : 8; /* UDF */
 	u16 vlan1;
 	u16 etype;
 	u32 dmac_hi;
@@ -397,8 +397,8 @@ struct hnat_ipv4_dslite {
 	u8 flow_lbl[3]; /* in order to consist with Linux kernel (should be 20bits) */
 	u8 priority;    /* in order to consist with Linux kernel (should be 8bits) */
 	u32 hop_limit : 8;
-	u32 resv2 : 18;
-	u32 act_dp : 6; /* UDF */
+	u32 resv2 : 16;
+	u32 act_dp : 8; /* UDF */
 
 	union {
 		struct hnat_info_blk2 iblk2;
@@ -449,8 +449,8 @@ struct hnat_ipv6_3t_route {
 	u32 resv1;
 	u32 resv2;
 	u32 resv3;
-	u32 resv4 : 26;
-	u32 act_dp : 6; /* UDF */
+	u32 resv4 : 24;
+	u32 act_dp : 8; /* UDF */
 
 	union {
 		struct hnat_info_blk2 iblk2;
@@ -496,8 +496,8 @@ struct hnat_ipv6_5t_route {
 	u32 resv1;
 	u32 resv2;
 	u32 resv3;
-	u32 resv4 : 26;
-	u32 act_dp : 6; /* UDF */
+	u32 resv4 : 24;
+	u32 act_dp : 8; /* UDF */
 
 	union {
 		struct hnat_info_blk2 iblk2;
@@ -549,8 +549,8 @@ struct hnat_ipv6_6rd {
 	u32 flag : 3;
 	u32 resv1 : 13;
 	u32 per_flow_6rd_id : 1;
-	u32 resv2 : 9;
-	u32 act_dp : 6; /* UDF */
+	u32 resv2 : 7;
+	u32 act_dp : 8; /* UDF */
 
 	union {
 		struct hnat_info_blk2 iblk2;
@@ -919,8 +919,8 @@ enum FoeIpAct {
 #define NEXTHDR_IPIP 4
 #endif
 
-#define UDF_PINGPONG_IFIDX GENMASK(3, 0)
-#define UDF_HNAT_PRE_FILLED BIT(4)
+#define UDF_PINGPONG_IFIDX GENMASK(6, 0)
+#define UDF_HNAT_PRE_FILLED BIT(7)
 
 extern const struct of_device_id of_hnat_match[];
 extern struct mtk_hnat *hnat_priv;

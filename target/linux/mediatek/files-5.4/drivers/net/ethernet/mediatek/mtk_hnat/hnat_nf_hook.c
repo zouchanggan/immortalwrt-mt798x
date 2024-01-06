@@ -554,64 +554,15 @@ unsigned int do_hnat_ge_to_ext(struct sk_buff *skb, const char *func)
 	return -1;
 }
 
-struct hnat_accounting diffglobal[2][32769];  
-
-static void mtk_hnat_nf_update_ipt(struct sk_buff *skb)
-{
-	
-	struct nf_conn *ct;
-	struct nf_conn_acct *acct;
-	struct nf_conn_counter *counter;
-	enum ip_conntrack_info ctinfo;
-	struct hnat_accounting diff;
-	
-	if (skb->protocol == htons(ETH_P_IPV6) && !hnat_priv->ipv6_en) {
-		return ;
-	}
-
-	if (skb_hnat_alg(skb) || unlikely(!is_magic_tag_valid(skb) ||
-					  !IS_SPACE_AVAILABLE_HEAD(skb)))
-		return ;
-
-	if (unlikely(!skb_mac_header_was_set(skb)))
-		return ;
-
-	if (unlikely(!skb_hnat_is_hashed(skb)))
-		return ;
-		
-	if (unlikely(skb->mark == HNAT_EXCEPTION_TAG))
-		return ;
-
-
-	ct = nf_ct_get(skb, &ctinfo);
-	if (ct) {
-		if (!hnat_get_count(hnat_priv, skb_hnat_ppe(skb), skb_hnat_entry(skb), &diff))
-			return;
-			
-		if ((skb_hnat_entry(skb) <= hnat_priv->foe_etry_num) && (skb_hnat_entry(skb) >0))
-			diffglobal[skb_hnat_ppe(skb)][skb_hnat_entry(skb)]= diff;
-
-		acct = nf_conn_acct_find(ct);
-		if (acct) {
-			counter = acct->counter;
-			atomic64_set(&counter[CTINFO2DIR(ctinfo)].diff_packets, diff.packets);
-			atomic64_set(&counter[CTINFO2DIR(ctinfo)].diff_bytes, diff.bytes);
-		}
-	}
-		
-}
-
-
 static void pre_routing_print(struct sk_buff *skb, const struct net_device *in,
 			      const struct net_device *out, const char *func)
-{	
+{
 	trace_printk(
 		"[%s]: %s(iif=0x%x CB2=0x%x)-->%s (ppe_hash=0x%x) sport=0x%x reason=0x%x alg=0x%x from %s\n",
 		__func__, in->name, skb_hnat_iface(skb),
 		HNAT_SKB_CB2(skb)->magic, out->name, skb_hnat_entry(skb),
 		skb_hnat_sport(skb), skb_hnat_reason(skb), skb_hnat_alg(skb),
 		func);
-		
 }
 
 static void post_routing_print(struct sk_buff *skb, const struct net_device *in,
@@ -850,6 +801,52 @@ static unsigned int is_ppe_support_type(struct sk_buff *skb)
 	return 0;
 }
 
+
+static void mtk_hnat_nf_update(struct sk_buff *skb)
+{
+	struct nf_conn *ct;
+	struct nf_conn_acct *acct;
+	struct nf_conn_counter *counter;
+	enum ip_conntrack_info ctinfo;
+	struct hnat_accounting diff;
+	
+	if (skb->protocol == htons(ETH_P_IPV6) && !hnat_priv->ipv6_en) {
+		return ;
+	}
+
+	if (skb_hnat_alg(skb) || unlikely(!is_magic_tag_valid(skb) ||
+					  !IS_SPACE_AVAILABLE_HEAD(skb)))
+		return ;
+
+	if (unlikely(!skb_mac_header_was_set(skb)))
+		return ;
+
+	if (unlikely(!skb_hnat_is_hashed(skb)))
+		return ;
+		
+	if (unlikely(skb->mark == HNAT_EXCEPTION_TAG))
+		return ;
+ 
+	ct = nf_ct_get(skb, &ctinfo);
+	if (ct) {
+		if (!hnat_get_count(hnat_priv, skb_hnat_ppe(skb), skb_hnat_entry(skb), &diff)){
+			atomic64_set(&counter[CTINFO2DIR(ctinfo)].diff_packets, 0);
+			atomic64_set(&counter[CTINFO2DIR(ctinfo)].diff_bytes, 0);
+			return;}
+
+		acct = nf_conn_acct_find(ct);
+		if (acct) {
+			counter = acct->counter;
+			atomic64_add(diff.packets, &counter[CTINFO2DIR(ctinfo)].packets);
+			atomic64_add(diff.bytes, &counter[CTINFO2DIR(ctinfo)].bytes);
+			atomic64_set(&counter[CTINFO2DIR(ctinfo)].diff_packets, diff.packets);
+			atomic64_set(&counter[CTINFO2DIR(ctinfo)].diff_bytes, diff.bytes);
+		}
+	}
+}
+
+
+/* update hnat count to nf_conntrack and iptables by keepalive */
 static unsigned int
 mtk_hnat_nf_conntrack(void *priv, struct sk_buff *skb,
 			     const struct nf_hook_state *state)
@@ -858,7 +855,8 @@ mtk_hnat_nf_conntrack(void *priv, struct sk_buff *skb,
 		goto drop;
 	
 	if (unlikely(skb_hnat_reason(skb) == HIT_BIND_KEEPALIVE_DUP_OLD_HDR))
-		mtk_hnat_nf_update_ipt(skb);
+		{if (hnat_priv->data->per_flow_accounting && hnat_priv->nf_stat_en)
+			mtk_hnat_nf_update(skb);}
 		
 	return NF_ACCEPT;
 	
@@ -868,14 +866,13 @@ drop:
 
 }
 
-
 static unsigned int
 mtk_hnat_ipv6_nf_pre_routing(void *priv, struct sk_buff *skb,
 			     const struct nf_hook_state *state)
 {
 	if (!skb)
 		goto drop;
-		
+
 	if (!is_magic_tag_valid(skb))
 		return NF_ACCEPT;
 
@@ -888,7 +885,6 @@ mtk_hnat_ipv6_nf_pre_routing(void *priv, struct sk_buff *skb,
 
 	pre_routing_print(skb, state->in, state->out, __func__);
 
-		
 	/* packets from external devices -> xxx ,step 1 , learning stage & bound stage*/
 	if (do_ext2ge_fast_try(state->in, skb)) {
 		if (!do_hnat_ext_to_ge(skb, state->in, __func__))
@@ -944,8 +940,7 @@ mtk_hnat_ipv4_nf_pre_routing(void *priv, struct sk_buff *skb,
  						
 	if (!skb)
 		goto drop;
-		
-	
+
 	if (!is_magic_tag_valid(skb))
 		return NF_ACCEPT;
 
@@ -966,7 +961,6 @@ mtk_hnat_ipv4_nf_pre_routing(void *priv, struct sk_buff *skb,
 
 
 	pre_routing_print(skb, state->in, state->out, __func__);
-	
 
 	/* packets from external devices -> xxx ,step 1 , learning stage & bound stage*/
 	if (do_ext2ge_fast_try(state->in, skb)) {
@@ -1005,8 +999,7 @@ mtk_hnat_br_nf_local_in(void *priv, struct sk_buff *skb,
 
 	if (!skb)
 		goto drop;
-		
-	
+
 	if (!is_magic_tag_valid(skb))
 		return NF_ACCEPT;
 
@@ -2144,34 +2137,6 @@ static void mtk_hnat_dscp_update(struct sk_buff *skb, struct foe_entry *entry)
 	}
 }
 
-
-
-static void mtk_hnat_nf_update(struct sk_buff *skb)
-{
-	struct nf_conn *ct;
-	struct nf_conn_acct *acct;
-	struct nf_conn_counter *counter;
-	enum ip_conntrack_info ctinfo;
-	struct hnat_accounting diff;
-
-	ct = nf_ct_get(skb, &ctinfo);
-	if (ct) {
-		if ((skb_hnat_entry(skb) <= hnat_priv->foe_etry_num) && (skb_hnat_entry(skb) >0))
-			diff= diffglobal[skb_hnat_ppe(skb)][skb_hnat_entry(skb)];
-		else return;
-
-
-		acct = nf_conn_acct_find(ct);
-		if (acct) {
-			counter = acct->counter;
-			atomic64_add(diff.packets, &counter[CTINFO2DIR(ctinfo)].packets);
-			atomic64_add(diff.bytes, &counter[CTINFO2DIR(ctinfo)].bytes);
-			atomic64_set(&counter[CTINFO2DIR(ctinfo)].diff_packets, diff.packets);
-			atomic64_set(&counter[CTINFO2DIR(ctinfo)].diff_bytes, diff.bytes);
-		}
-	}
-}
-
 static unsigned int mtk_hnat_nf_post_routing(
 	struct sk_buff *skb, const struct net_device *out,
 	unsigned int (*fn)(struct sk_buff *, const struct net_device *,
@@ -2228,11 +2193,7 @@ static unsigned int mtk_hnat_nf_post_routing(
 
 		skb_to_hnat_info(skb, out, entry, &hw_path);
 		break;
-	case HIT_BIND_KEEPALIVE_DUP_OLD_HDR:
-		/* update hnat count to nf_conntrack by keepalive */
-		if (hnat_priv->data->per_flow_accounting && hnat_priv->nf_stat_en)
-			mtk_hnat_nf_update(skb);
-
+	case HIT_BIND_KEEPALIVE_DUP_OLD_HDR:	
 		if (fn && !mtk_hnat_accel_type(skb))
 			break;
 
@@ -2392,7 +2353,6 @@ mtk_pong_hqos_handler(void *priv, struct sk_buff *skb,
 
 	if (!skb)
 		goto drop;
-		
 
 	if (!is_magic_tag_valid(skb))
 		return NF_ACCEPT;
@@ -2500,6 +2460,18 @@ static unsigned int mtk_hnat_br_nf_forward(void *priv,
 
 static struct nf_hook_ops mtk_hnat_nf_ops[] __read_mostly = {
 	{
+		.hook = mtk_hnat_nf_conntrack,
+		.pf = NFPROTO_IPV4,
+		.hooknum = NF_INET_PRE_ROUTING,
+		.priority = NF_IP_PRI_MANGLE-1,
+	},
+	{
+		.hook = mtk_hnat_nf_conntrack,
+		.pf = NFPROTO_IPV6,
+		.hooknum = NF_INET_PRE_ROUTING,
+		.priority = NF_IP_PRI_MANGLE-1,
+	},
+	{
 		.hook = mtk_hnat_ipv4_nf_pre_routing,
 		.pf = NFPROTO_IPV4,
 		.hooknum = NF_INET_PRE_ROUTING,
@@ -2510,18 +2482,6 @@ static struct nf_hook_ops mtk_hnat_nf_ops[] __read_mostly = {
 		.pf = NFPROTO_IPV6,
 		.hooknum = NF_INET_PRE_ROUTING,
 		.priority = NF_IP_PRI_FIRST + 1,
-	},
-	{
-		.hook = mtk_hnat_nf_conntrack,
-		.pf = NFPROTO_IPV4,
-		.hooknum = NF_INET_PRE_ROUTING,
-		.priority = NF_IP_PRI_MANGLE-1,
-	},
-	{
-		.hook = mtk_hnat_nf_conntrack,
-		.pf = NFPROTO_IPV6,
-		.hooknum = NF_INET_PRE_ROUTING,
-		.priority = NF_IP_PRI_MANGLE-1,
 	},
 	{
 		.hook = mtk_hnat_ipv6_nf_post_routing,
