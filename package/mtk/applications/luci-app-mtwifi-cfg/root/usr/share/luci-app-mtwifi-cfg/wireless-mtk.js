@@ -924,7 +924,7 @@ return view.extend({
 					E('button', {
 						'class': 'cbi-button cbi-button-negative remove',
 						'title': _('Delete this network'),
-						'click': ui.createHandlerFn(this, 'handleRemove', section_id)
+						'click': ui.createHandlerFn(this, 'handleRemove', section_id, inst)
 					}, _('Remove'))
 				];
 			}
@@ -1418,10 +1418,12 @@ return view.extend({
 				o.depends('encryption', 'wpa2');
 				o.depends('encryption', 'wpa3');
 				o.depends('encryption', 'wpa3-mixed');
-				o.depends('encryption', 'psk');
 				o.depends('encryption', 'psk2');
 				o.depends('encryption', 'wpa-mixed');
 				o.depends('encryption', 'psk-mixed');
+				if (hwtype != 'mtwifi') {
+ 					o.depends('encryption', 'psk');
+ 				}
 				o.value('auto', _('auto'));
 				o.value('ccmp', _('Force CCMP (AES)'));
 				o.value('tkip', _('Force TKIP'));
@@ -2003,10 +2005,35 @@ return view.extend({
 			});
 		};
 
-		s.handleRemove = function(section_id, ev) {
+		s.handleRemove = function(section_id, radioNet, ev) {
+			var radioName = radioNet.getWifiDeviceName();
+			var hwtype = uci.get('wireless', radioName, 'type');
+
+			if (hwtype == 'mtwifi')
+			{
+				var wifi_sections = uci.sections('wireless', 'wifi-iface');
+				var mbssid_num = 0;
+
+				for (var i = 0; i < wifi_sections.length; i++) {
+					if (wifi_sections[i].device == radioName && wifi_sections[i].mode == "ap")
+						mbssid_num++;
+				}
+
+				if (mbssid_num <= 1)
+					return ui.showModal(_('Wireless configuration error'), [
+						E('p', _('At least one MBSSID needs to be reserved')),
+						E('div', { 'class': 'right' },
+						E('button', {
+							'class': 'btn',
+							'click': ui.hideModal
+						}, _('Close')))
+					]);
+			}
+
 			document.querySelector('.cbi-section-table-row[data-sid="%s"]'.format(section_id)).style.opacity = 0.5;
 			return form.TypedSection.prototype.handleRemove.apply(this, [section_id, ev]);
 		};
+
 
 		s.handleScan = function(radioDev, ev) {
 			var table = E('table', { 'class': 'table' }, [
