@@ -27,7 +27,8 @@ mediatek_setup_interfaces()
 	bananapi,bpi-r3mini*)
 		ucidef_set_interfaces_lan_wan "eth0" "eth1"
 		;;
-	netcore,n60)
+	netcore,n60|\
+ 	ruijie,rg-x60-pro*)
 		ucidef_set_interfaces_lan_wan "lan0 lan1 lan2 lan3" eth1
 		;;
  	glinet,gl-mt6000)
@@ -92,6 +93,19 @@ mediatek_setup_macs()
 		dd if=/dev/mtd4 of=/lib/firmware/MT7986_iPAiLNA_EEPROM_AX6000.bin
 		dd if=/dev/mtd4 of=/lib/firmware/MT7986_ePAeLNA_EEPROM_AX6000.bin
 		;;
+	ruijie,rg-x60-pro*)
+ 		label_mac=$(mtd_get_mac_ascii product_info ethaddr)
+ 		wan_mac=$label_mac
+ 		lan_mac=$(macaddr_add "$label_mac" 1)
+ 		local wifi_mac="$(macaddr_add $label_mac 2)"
+		sed -i '/MacAddress=$wifi_mac/d' /etc/wireless/mediatek/mt7986.dbdc.b0.dat
+		echo "MacAddress=$wifi_mac" >> /etc/wireless/mediatek/mt7986.dbdc.b0.dat
+		wifi_mac="$(macaddr_add $label_mac 3)"
+		sed -i '/MacAddress=$wifi_mac/d' /etc/wireless/mediatek/mt7986.dbdc.b1.dat
+		echo "MacAddress=$wifi_mac" >> /etc/wireless/mediatek/mt7986.dbdc.b1.dat
+		dd if=/dev/mtd3 of=/lib/firmware/MT7986_iPAiLNA_EEPROM_AX6000.bin
+		dd if=/dev/mtd3 of=/lib/firmware/MT7986_ePAeLNA_EEPROM_AX6000.bin
+ 		;;
 	*)
 		lan_mac=$(mtd_get_mac_binary "Factory" "0x2A")
 		wan_mac=$(mtd_get_mac_binary "Factory" "0x24")

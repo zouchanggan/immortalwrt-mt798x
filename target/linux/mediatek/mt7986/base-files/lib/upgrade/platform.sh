@@ -149,6 +149,7 @@ platform_do_upgrade() {
 	bananapi,bpi-r3mini |\
 	netcore,n60|\
 	tplink,tl-xdr608*|\
+	ruijie,rg-x60-pro*|\
 	*snand*)
 		nand_do_upgrade "$1"
 		;;
@@ -178,6 +179,7 @@ platform_check_image() {
 	xiaomi,redmi-router-ax6000* |\
 	bananapi,bpi-r3mini* |\
 	netcore,n60|\
+	ruijie,rg-x60-pro*|\
 	*snand* |\
 	glinet,gl-mt6000|\
 	jdcloud,re-cp-03|\
