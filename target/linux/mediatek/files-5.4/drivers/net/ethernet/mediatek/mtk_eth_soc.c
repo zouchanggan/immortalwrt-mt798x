@@ -1079,7 +1079,7 @@ static int mtk_tx_map(struct sk_buff *skb, struct net_device *dev,
 	if (HNAT_SKB_CB2(skb)->magic == 0x78681415) {
 		if (MTK_HAS_CAPS(eth->soc->caps, MTK_NETSYS_V2)) {
 			txd4 &= ~(0xf << TX_DMA_FPORT_SHIFT_V2);
-			txd4 |= 0x4 << TX_DMA_FPORT_SHIFT_V2;
+			txd4 |= 0x3 << TX_DMA_FPORT_SHIFT_V2;
 		} else {
 			txd4 &= ~(0x7 << TX_DMA_FPORT_SHIFT);
 			txd4 |= 0x4 << TX_DMA_FPORT_SHIFT;
@@ -1411,7 +1411,9 @@ static int mtk_poll_rx(struct napi_struct *napi, int budget,
 				mac = (trxd.rxd4 & RX_DMA_SPECIAL_TAG) ?
 				      0 : RX_DMA_GET_SPORT(trxd.rxd4) - 1;
 		}
-
+		
+		if (mac ==4) mac = 0; 
+		
 		if (unlikely(mac < 0 || mac >= MTK_MAC_COUNT ||
 			     !eth->netdev[mac]))
 			goto release_desc;
@@ -2584,7 +2586,7 @@ static int mtk_start_dma(struct mtk_eth *eth)
 				MTK_NDP_CO_PRO | MTK_MUTLI_CNT |
 				MTK_RESV_BUF | MTK_WCOMP_EN |
 				MTK_DMAD_WR_WDONE | MTK_CHK_DDONE_EN |
-				MTK_RX_2B_OFFSET , MTK_QDMA_GLO_CFG);
+				MTK_RX_2B_OFFSET | MTK_PKT_RX_WDONE, MTK_QDMA_GLO_CFG);
 		}
 		else
 			mtk_w32(eth,

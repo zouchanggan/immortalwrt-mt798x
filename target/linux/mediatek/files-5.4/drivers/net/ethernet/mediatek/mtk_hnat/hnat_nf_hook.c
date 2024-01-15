@@ -76,7 +76,10 @@ static inline int find_extif_from_devname(const char *name)
 
 	for (i = 0; i < MAX_EXT_DEVS && hnat_priv->ext_if[i]; i++) {
 		ext_entry = hnat_priv->ext_if[i];
-		if (!strcmp(name, ext_entry->name))
+		if (strlen(ext_entry->name) && !strcmp(name, ext_entry->name))
+			return 1;
+
+		if (strlen(ext_entry->name_prefix) && !strncmp(name, ext_entry->name_prefix, strlen(ext_entry->name_prefix)))
 			return 1;
 	}
 	return 0;
@@ -128,7 +131,10 @@ static inline int extif_set_dev(struct net_device *dev)
 
 	for (i = 0; i < MAX_EXT_DEVS && hnat_priv->ext_if[i]; i++) {
 		ext_entry = hnat_priv->ext_if[i];
-		if (!strcmp(dev->name, ext_entry->name) && !ext_entry->dev) {
+		if (((strlen(ext_entry->name) && !strcmp(dev->name, ext_entry->name))
+			|| (strlen(ext_entry->name_prefix) && !strncmp(dev->name, ext_entry->name_prefix, strlen(ext_entry->name_prefix))))
+			&& !ext_entry->dev)
+		{
 			dev_hold(dev);
 			ext_entry->dev = dev;
 			pr_info("%s(%s)\n", __func__, dev->name);
@@ -400,9 +406,7 @@ unsigned int do_hnat_ext_to_ge(struct sk_buff *skb, const struct net_device *in,
 		}
 
 		/*set where we come from*/
-		skb->vlan_proto = htons(ETH_P_8021Q);
-		skb->vlan_tci =
-			(VLAN_CFI_MASK | (in->ifindex & VLAN_VID_MASK));
+		__vlan_hwaccel_put_tag(skb, htons(ETH_P_8021Q), in->ifindex & VLAN_VID_MASK);
 		trace_printk(
 			"%s: vlan_prot=0x%x, vlan_tci=%x, in->name=%s, skb->dev->name=%s\n",
 			__func__, ntohs(skb->vlan_proto), skb->vlan_tci,
@@ -433,13 +437,16 @@ unsigned int do_hnat_ext_to_ge2(struct sk_buff *skb, const char *func)
 		skb->dev = dev;
 		skb->vlan_proto = 0;
 		skb->vlan_tci = 0;
-
+		__vlan_hwaccel_clear_tag(skb);
 		if (ntohs(eth->h_proto) == ETH_P_8021Q) {
 			skb = skb_vlan_untag(skb);
 			if (unlikely(!skb))
 				return -1;
 		}
-
+		trace_printk(
+			"%s: vlan_prot=0x%x, vlan_tci=%x, skb->dev->name=%s\n",
+			__func__, ntohs(skb->vlan_proto), skb->vlan_tci,skb->dev->name);
+			
 		if (IS_BOND_MODE &&
 		    (((hnat_priv->data->version == MTK_HNAT_V4) &&
 				(skb_hnat_entry(skb) != 0x7fff)) ||
@@ -873,6 +880,11 @@ mtk_hnat_ipv6_nf_pre_routing(void *priv, struct sk_buff *skb,
 	if (!skb)
 		goto drop;
 
+	if ((!IS_WHNAT(state->in)) && (IS_EXT(state->in)) && (IS_SPACE_AVAILABLE_HEAD(skb))) {
+		skb_hnat_alg(skb) = 0;
+		skb_hnat_magic_tag(skb) = HNAT_MAGIC_TAG;
+	}
+	
 	if (!is_magic_tag_valid(skb))
 		return NF_ACCEPT;
 
@@ -940,6 +952,11 @@ mtk_hnat_ipv4_nf_pre_routing(void *priv, struct sk_buff *skb,
  						
 	if (!skb)
 		goto drop;
+	
+	if ((!IS_WHNAT(state->in)) && (IS_EXT(state->in)) && (IS_SPACE_AVAILABLE_HEAD(skb))) {
+		skb_hnat_alg(skb) = 0;
+		skb_hnat_magic_tag(skb) = HNAT_MAGIC_TAG;
+	}
 
 	if (!is_magic_tag_valid(skb))
 		return NF_ACCEPT;
@@ -999,9 +1016,15 @@ mtk_hnat_br_nf_local_in(void *priv, struct sk_buff *skb,
 
 	if (!skb)
 		goto drop;
-
+	
+	if ((!IS_WHNAT(state->in)) && (IS_EXT(state->in)) && (IS_SPACE_AVAILABLE_HEAD(skb))) {
+		skb_hnat_alg(skb) = 0;
+		skb_hnat_magic_tag(skb) = HNAT_MAGIC_TAG;
+	}
+	
 	if (!is_magic_tag_valid(skb))
 		return NF_ACCEPT;
+	
 
 	if (IS_HQOS_MODE && hnat_priv->data->whnat) {
 		veth = (struct vlan_ethhdr *)skb_mac_header(skb);
@@ -1011,12 +1034,13 @@ mtk_hnat_br_nf_local_in(void *priv, struct sk_buff *skb,
 			skb_hnat_reason(skb) = HIT_BIND_FORCE_TO_CPU;
 		}
 	}
-
+	
 	if (!HAS_HQOS_MAGIC_TAG(skb) && !is_ppe_support_type(skb)) {
 		hnat_set_head_frags(state, skb, 1, hnat_set_alg);
 		return NF_ACCEPT;
 	}
-
+	
+	if (skb_hnat_iface(skb) != FOE_MAGIC_EXT)
 	hnat_set_head_frags(state, skb, -1, hnat_set_iif);
 
 	pre_routing_print(skb, state->in, state->out, __func__);
@@ -1026,7 +1050,7 @@ mtk_hnat_br_nf_local_in(void *priv, struct sk_buff *skb,
 		if (skb_hnat_reason(skb) == dbg_cpu_reason)
 			foe_dump_pkt(skb);
 	}
-
+	
 	/* packets from external devices -> xxx ,step 1 , learning stage & bound stage*/
 	if ((skb_hnat_iface(skb) == FOE_MAGIC_EXT) && !is_from_extge(skb) &&
 	    !is_multicast_ether_addr(eth_hdr(skb)->h_dest)) {
@@ -1675,7 +1699,7 @@ static unsigned int skb_to_hnat_info(struct sk_buff *skb,
 				gmac = (IS_GMAC1_MODE) ? NR_GMAC1_PORT : NR_GMAC2_PORT;
 		}
 	} else if (IS_EXT(dev) && (FROM_GE_PPD(skb) || FROM_GE_LAN(skb) ||
-		   FROM_GE_WAN(skb) || FROM_GE_VIRTUAL(skb) || FROM_WED(skb))) {
+		   FROM_GE_WAN(skb) || FROM_GE_VIRTUAL(skb) ||  FROM_WED(skb) || FROM_EXT(skb))) {
 		if (!hnat_priv->data->whnat && IS_GMAC1_MODE) {
 			entry.bfib1.vpm = 1;
 			entry.bfib1.vlan_layer = 1;
@@ -2174,7 +2198,11 @@ static unsigned int mtk_hnat_nf_post_routing(
 
 	if (!IS_LAN(out) && !IS_WAN(out) && !IS_EXT(out))
 		return 0;
+		
+	if (!IS_WHNAT(out) && IS_EXT(out) && FROM_WED(skb))
+		return 0;
 
+		
 	trace_printk("[%s] case hit, %x-->%s, reason=%x\n", __func__,
 		     skb_hnat_iface(skb), out->name, skb_hnat_reason(skb));
 
@@ -2353,7 +2381,7 @@ mtk_pong_hqos_handler(void *priv, struct sk_buff *skb,
 
 	if (!skb)
 		goto drop;
-
+		
 	if (!is_magic_tag_valid(skb))
 		return NF_ACCEPT;
 
@@ -2402,7 +2430,7 @@ mtk_hnat_br_nf_local_out(void *priv, struct sk_buff *skb,
 		goto drop;
 
 	post_routing_print(skb, state->in, state->out, __func__);
-
+	
 	if (!mtk_hnat_nf_post_routing(skb, state->out, 0, __func__))
 		return NF_ACCEPT;
 

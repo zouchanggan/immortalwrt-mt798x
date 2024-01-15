@@ -197,3 +197,7 @@ msgstr "HNAT PPE数量"
 
 msgid "Bind Entrys"
 msgstr "已绑定连接数"
+
+msgid "Number of HNAT PPE Entry"
+msgstr "HNAT PPE条目数量"
+

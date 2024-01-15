@@ -596,9 +596,9 @@ struct foe_entry {
 /* If user wants to change default FOE entry number, both DEF_ETRY_NUM and
  * DEF_ETRY_NUM_CFG need to be modified.
  */
-#define DEF_ETRY_NUM		32768
+/* #define DEF_ETRY_NUM		32768 */
 /* feasible values : 32768, 16384, 8192, 4096, 2048, 1024 */
-#define DEF_ETRY_NUM_CFG	TABLE_32K
+/* #define DEF_ETRY_NUM_CFG	TABLE_32K */
 /* corresponding values : TABLE_32K, TABLE_16K, TABLE_8K, TABLE_4K, TABLE_2K,
  * TABLE_1K
  */
@@ -690,6 +690,7 @@ struct mtk_hnat {
 
 struct extdev_entry {
 	char name[IFNAMSIZ];
+	char name_prefix[IFNAMSIZ];
 	struct net_device *dev;
 };
 
@@ -857,10 +858,10 @@ enum FoeIpAct {
 	((!strncmp((dev)->name, hnat_priv->wan, strlen(hnat_priv->wan))) || ((!strncmp((dev)->name, "macvlan", 7)) && \
 		(hnat_priv->macvlan_support)))
 #define IS_LAN(dev) (!strncmp(dev->name, LAN_DEV_NAME, strlen(LAN_DEV_NAME))) 
-#define IS_BR(dev) ((!strncmp(dev->name, "br", 2)) || (!strncmp(dev->name, "ra", 2)) || (!strncmp(dev->name, "eth", 3)))
+#define IS_BR(dev) (!strncmp(dev->name, "br", 2))
 #define IS_WHNAT(dev)								\
 	((hnat_priv->data->whnat &&						\
-	 (get_wifi_hook_if_index_from_dev(dev) != 0)) ? 1 : 0)
+	 (get_wifi_hook_if_index_from_dev(dev) != 0)) ? 1 : 0 )
 #define IS_EXT(dev) ((get_index_from_dev(dev) != 0) ? 1 : 0)
 #define IS_PPD(dev) (!strcmp(dev->name, hnat_priv->ppd))
 #define IS_IPV4_HNAPT(x) (((x)->bfib1.pkt_type == IPV4_HNAPT) ? 1 : 0)
