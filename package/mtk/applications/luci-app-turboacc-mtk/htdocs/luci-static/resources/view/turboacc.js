@@ -250,7 +250,6 @@ return view.extend({
 		o = s.option(form.ListValue, 'fastpath_mh_eth_hnat_ppe_entrynum', _('Number of HNAT PPE Entry'),
 			_('Apply this setting after reboot.'));
 		o.rmempty = false;
-		o.value(32768);
 		o.value(16384);
 		o.value(8192);
 		o.value(4096);

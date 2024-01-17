@@ -45,8 +45,8 @@ EXPORT_SYMBOL(ppe_dev_unregister_hook);
 static int ppe_cnt = 1;
 module_param(ppe_cnt, int, 0);
 
-static int DEF_ETRY_NUM = 32768;
-static int DEF_ETRY_NUM_CFG = TABLE_32K;
+static int DEF_ETRY_NUM = 16384;
+static int DEF_ETRY_NUM_CFG = TABLE_16K;
 module_param(DEF_ETRY_NUM, int, 0);
 		
 static void hnat_sma_build_entry(struct timer_list *t)
@@ -682,9 +682,6 @@ static int hnat_probe(struct platform_device *pdev)
 	const struct of_device_id *match;
 
 	switch (DEF_ETRY_NUM) {
-	case 32768:
-		DEF_ETRY_NUM_CFG = TABLE_32K;
-		break;
 	case 16384:
 		DEF_ETRY_NUM_CFG = TABLE_16K;
 		break;
@@ -700,7 +697,8 @@ static int hnat_probe(struct platform_device *pdev)
 	case 1024:
 		DEF_ETRY_NUM_CFG = TABLE_1K;
 		break;
-	default:
+	default:DEF_ETRY_NUM=16384;
+		DEF_ETRY_NUM_CFG = TABLE_16K;
 		break;
 	}
 	
