@@ -34,7 +34,7 @@
 #include "../mtk_eth_reset.h"
 
 #define do_ge2ext_fast(dev, skb)                                               \
-	((IS_LAN(dev) || IS_WAN(dev) || IS_PPD(dev) ) && \
+	((IS_LAN(dev) || IS_WAN(dev) || IS_PPD(dev) || IS_EXT(dev)) && \
 	 skb_hnat_is_hashed(skb) && \
 	 skb_hnat_reason(skb) == HIT_BIND_FORCE_TO_CPU)
 #define do_ext2ge_fast_learn(dev, skb)                                         \
@@ -523,6 +523,7 @@ unsigned int do_hnat_ge_to_ext(struct sk_buff *skb, const char *func)
 		skb_set_network_header(skb, 0);
 		skb_push(skb, ETH_HLEN);
 		dev_queue_xmit(skb);
+		skb->pkt_type = PACKET_HOST;
 		trace_printk("%s: called from %s successfully\n", __func__,
 			     func);
 		return 0;
@@ -2203,9 +2204,6 @@ static unsigned int mtk_hnat_nf_post_routing(
 	if (!IS_LAN(out) && !IS_WAN(out) && !IS_EXT(out))
 		return 0;
 		
-	if (!IS_WHNAT(out) && IS_EXT(out) && FROM_WED(skb))
-		return 0;
-
 		
 	trace_printk("[%s] case hit, %x-->%s, reason=%x\n", __func__,
 		     skb_hnat_iface(skb), out->name, skb_hnat_reason(skb));
