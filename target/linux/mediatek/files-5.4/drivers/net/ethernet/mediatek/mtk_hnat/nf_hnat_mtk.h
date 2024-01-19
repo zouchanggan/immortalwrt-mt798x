@@ -77,7 +77,6 @@ struct hnat_desc {
 #define skb_hnat_filled(skb) (((struct hnat_desc *)(skb->head))->filled)
 #define skb_hnat_magic_tag(skb) (((struct hnat_desc *)((skb)->head))->magic_tag_protect)
 #define skb_hnat_wdma_id(skb) (((struct hnat_desc *)((skb)->head))->wdmaid)
-#define skb_hnat_resv(skb) (((struct hnat_desc *)((skb)->head))->resv)
 #define skb_hnat_rx_id(skb) (((struct hnat_desc *)((skb)->head))->rxid)
 #define skb_hnat_wc_id(skb) (((struct hnat_desc *)((skb)->head))->wcid)
 #define skb_hnat_bss_id(skb) (((struct hnat_desc *)((skb)->head))->bssid)

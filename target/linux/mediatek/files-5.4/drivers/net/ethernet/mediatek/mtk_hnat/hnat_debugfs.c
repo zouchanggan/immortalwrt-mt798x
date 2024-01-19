@@ -1732,8 +1732,8 @@ static int hnat_ext_show(struct seq_file *m, void *private)
 	for (i = 0; i < MAX_EXT_DEVS && hnat_priv->ext_if[i]; i++) {
 		ext_entry = hnat_priv->ext_if[i];
 		if (ext_entry->dev)
-			seq_printf(m, "ext devices [%d] = %s, prefix = %s  (dev=%p, ifindex=%d)\n",
-				   i, ext_entry->name, ext_entry->name_prefix, ext_entry->dev,
+			seq_printf(m, "ext devices [%d] = %s,  (dev=%p, ifindex=%d)\n",
+				   i, ext_entry->dev->name, ext_entry->dev,
 				   ext_entry->dev->ifindex);
 	}
 
@@ -2209,6 +2209,7 @@ void hnat_qos_shaper_ebl(u32 id, u32 enable)
 	struct mtk_hnat *h = hnat_priv;
 	u32 cfg;
 
+	cr_set_field(h->fe_base + QDMA_PAGE, QTX_CFG_PAGE, (id / NUM_OF_Q_PER_PAGE));
 	if (enable) {
 		cfg = QTX_SCH_MIN_RATE_EN | QTX_SCH_MAX_RATE_EN;
 		cfg |= (1 << QTX_SCH_MIN_RATE_MAN_OFFSET) |

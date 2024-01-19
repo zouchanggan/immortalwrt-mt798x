@@ -352,8 +352,8 @@ struct hnat_ipv4_hnapt {
 	u16 m_timestamp; /* For mcast*/
 	u16 resv1;
 	u32 resv2;
-	u32 resv3 : 24;
-	u32 act_dp : 8; /* UDF */
+	u32 resv3 : 26;
+	u32 act_dp : 6; /* UDF */
 	u16 vlan1;
 	u16 etype;
 	u32 dmac_hi;
@@ -397,8 +397,8 @@ struct hnat_ipv4_dslite {
 	u8 flow_lbl[3]; /* in order to consist with Linux kernel (should be 20bits) */
 	u8 priority;    /* in order to consist with Linux kernel (should be 8bits) */
 	u32 hop_limit : 8;
-	u32 resv2 : 16;
-	u32 act_dp : 8; /* UDF */
+	u32 resv2 : 18;
+	u32 act_dp : 6; /* UDF */
 
 	union {
 		struct hnat_info_blk2 iblk2;
@@ -449,8 +449,8 @@ struct hnat_ipv6_3t_route {
 	u32 resv1;
 	u32 resv2;
 	u32 resv3;
-	u32 resv4 : 24;
-	u32 act_dp : 8; /* UDF */
+	u32 resv4 : 26;
+	u32 act_dp : 6; /* UDF */
 
 	union {
 		struct hnat_info_blk2 iblk2;
@@ -496,8 +496,8 @@ struct hnat_ipv6_5t_route {
 	u32 resv1;
 	u32 resv2;
 	u32 resv3;
-	u32 resv4 : 24;
-	u32 act_dp : 8; /* UDF */
+	u32 resv4 : 26;
+	u32 act_dp : 6; /* UDF */
 
 	union {
 		struct hnat_info_blk2 iblk2;
@@ -549,8 +549,8 @@ struct hnat_ipv6_6rd {
 	u32 flag : 3;
 	u32 resv1 : 13;
 	u32 per_flow_6rd_id : 1;
-	u32 resv2 : 7;
-	u32 act_dp : 8; /* UDF */
+	u32 resv2 : 9;
+	u32 act_dp : 6; /* UDF */
 
 	union {
 		struct hnat_info_blk2 iblk2;
@@ -596,14 +596,15 @@ struct foe_entry {
 /* If user wants to change default FOE entry number, both DEF_ETRY_NUM and
  * DEF_ETRY_NUM_CFG need to be modified.
  */
-/* #define DEF_ETRY_NUM		32768 */
+#define DEF_ETRY_NUM		16384
 /* feasible values : 32768, 16384, 8192, 4096, 2048, 1024 */
-/* #define DEF_ETRY_NUM_CFG	TABLE_32K */
+#define DEF_ETRY_NUM_CFG	TABLE_16K
 /* corresponding values : TABLE_32K, TABLE_16K, TABLE_8K, TABLE_4K, TABLE_2K,
  * TABLE_1K
  */
 #define MAX_EXT_DEVS		(0x3fU)
 #define MAX_IF_NUM		64
+#define MAX_EXT_PREFIX_NUM	8
 
 #if defined(CONFIG_MEDIATEK_NETSYS_V2)
 #define MAX_PPE_NUM		2
@@ -678,6 +679,7 @@ struct mtk_hnat {
 	struct net_device *g_wandev;
 	struct net_device *wifi_hook_if[MAX_IF_NUM];
 	struct extdev_entry *ext_if[MAX_EXT_DEVS];
+	const char *ext_if_prefix[MAX_EXT_PREFIX_NUM];
 	struct timer_list hnat_sma_build_entry_timer;
 	struct timer_list hnat_reset_timestamp_timer;
 	struct timer_list hnat_mcast_check_timer;
@@ -690,7 +692,6 @@ struct mtk_hnat {
 
 struct extdev_entry {
 	char name[IFNAMSIZ];
-	char name_prefix[IFNAMSIZ];
 	struct net_device *dev;
 };
 
@@ -861,7 +862,7 @@ enum FoeIpAct {
 #define IS_BR(dev) (!strncmp(dev->name, "br", 2))
 #define IS_WHNAT(dev)								\
 	((hnat_priv->data->whnat &&						\
-	 (get_wifi_hook_if_index_from_dev(dev) != 0)) ? 1 : 0 )
+	 (get_wifi_hook_if_index_from_dev(dev) != 0)) ? 1 : 0)
 #define IS_EXT(dev) ((get_index_from_dev(dev) != 0) ? 1 : 0)
 #define IS_PPD(dev) (!strcmp(dev->name, hnat_priv->ppd))
 #define IS_IPV4_HNAPT(x) (((x)->bfib1.pkt_type == IPV4_HNAPT) ? 1 : 0)
@@ -920,21 +921,8 @@ enum FoeIpAct {
 #define NEXTHDR_IPIP 4
 #endif
 
-#define UDF_PINGPONG_IFIDX GENMASK(6, 0)
-#define UDF_HNAT_PRE_FILLED BIT(7)
-
 extern const struct of_device_id of_hnat_match[];
 extern struct mtk_hnat *hnat_priv;
-
-static inline int is_hnat_pre_filled(struct foe_entry *entry)
-{
-	u32 udf = 0;
-	if (IS_IPV4_GRP(entry))
-		udf = entry->ipv4_hnapt.act_dp;
-	else
-		udf = entry->ipv6_5t_route.act_dp;
-	return !!(udf & UDF_HNAT_PRE_FILLED);
-}
 
 #if defined(CONFIG_NET_DSA_MT7530)
 u32 hnat_dsa_fill_stag(const struct net_device *netdev,

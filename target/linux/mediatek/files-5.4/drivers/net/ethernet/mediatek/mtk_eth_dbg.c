@@ -1481,7 +1481,7 @@ int hw_lro_auto_tlb_read(struct seq_file *seq, void *v)
 		seq_printf(seq,
 			   "Ring[%d]: MAX_AGG_CNT=%d, AGG_TIME=%d, AGE_TIME=%d, Threshold=%d\n",
 			   (MTK_HAS_CAPS(g_eth->soc->caps, MTK_NETSYS_RX_V2)) ?
-+			   i : i+3,
+			   i : i+3,
 			   agg_cnt, agg_time, age_time, reg_op4);
 	}
 

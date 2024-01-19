@@ -45,10 +45,6 @@ EXPORT_SYMBOL(ppe_dev_unregister_hook);
 static int ppe_cnt = 1;
 module_param(ppe_cnt, int, 0);
 
-static int DEF_ETRY_NUM = 16384;
-static int DEF_ETRY_NUM_CFG = TABLE_16K;
-module_param(DEF_ETRY_NUM, int, 0);
-		
 static void hnat_sma_build_entry(struct timer_list *t)
 {
 	int i;
@@ -681,27 +677,6 @@ static int hnat_probe(struct platform_device *pdev)
 	struct extdev_entry *ext_entry;
 	const struct of_device_id *match;
 
-	switch (DEF_ETRY_NUM) {
-	case 16384:
-		DEF_ETRY_NUM_CFG = TABLE_16K;
-		break;
-	case 8192:
-		DEF_ETRY_NUM_CFG = TABLE_8K;
-		break;
-	case 4096:
-		DEF_ETRY_NUM_CFG = TABLE_4K;
-		break;
-	case 2048:
-		DEF_ETRY_NUM_CFG = TABLE_2K;
-		break;
-	case 1024:
-		DEF_ETRY_NUM_CFG = TABLE_1K;
-		break;
-	default:DEF_ETRY_NUM=16384;
-		DEF_ETRY_NUM_CFG = TABLE_16K;
-		break;
-	}
-	
 	hnat_priv = devm_kzalloc(&pdev->dev, sizeof(struct mtk_hnat), GFP_KERNEL);
 	if (!hnat_priv)
 		return -ENOMEM;
@@ -757,7 +732,6 @@ static int hnat_probe(struct platform_device *pdev)
 		dev_info(&pdev->dev, "wan dsa port = %d\n", hnat_priv->wan_dsa_port);
 	}
 
-
 	hnat_priv->ppe_num = ppe_cnt;
 
 	dev_info(&pdev->dev, "ppe num = %d\n", hnat_priv->ppe_num);
@@ -787,6 +761,7 @@ static int hnat_probe(struct platform_device *pdev)
 	err = hnat_init_debugfs(hnat_priv);
 	if (err)
 		return err;
+
 	index = 0;
 	prop = of_find_property(np, "ext-devices", NULL);
 	for (name = of_prop_next_string(prop, NULL); name;
@@ -799,25 +774,24 @@ static int hnat_probe(struct platform_device *pdev)
 		strncpy(ext_entry->name, (char *)name, IFNAMSIZ - 1);
 		ext_if_add(ext_entry);
 	}
-	
-	
+
+	for (i = 0; i < MAX_EXT_DEVS && hnat_priv->ext_if[i]; i++) {
+		ext_entry = hnat_priv->ext_if[i];
+		dev_info(&pdev->dev, "ext devices = %s\n", ext_entry->name);
+	}
+
 	index = 0;
 	prop = of_find_property(np, "ext-devices-prefix", NULL);
 	for (name = of_prop_next_string(prop, NULL); name;
 	     name = of_prop_next_string(prop, name), index++) {
-		ext_entry = kzalloc(sizeof(*ext_entry), GFP_KERNEL);
-		if (!ext_entry) {
-			err = -ENOMEM;
-			goto err_out1;
-		}
-		strncpy(ext_entry->name_prefix, (char *)name, IFNAMSIZ - 1);
-		ext_if_add(ext_entry);
+		if (index < MAX_EXT_PREFIX_NUM)
+			hnat_priv->ext_if_prefix[index] = name;
+		else
+			break;
 	}
 
-
-	for (i = 0; i < MAX_EXT_DEVS && hnat_priv->ext_if[i]; i++) {
-		ext_entry = hnat_priv->ext_if[i];
-		dev_info(&pdev->dev, "ext devices = %s, prefix = %s\n", ext_entry->name, ext_entry->name_prefix);
+	for (i = 0; i < MAX_EXT_PREFIX_NUM && hnat_priv->ext_if_prefix[i]; i++) {
+		dev_info(&pdev->dev, "ext device prefix = %s\n", hnat_priv->ext_if_prefix[i]);
 	}
 
 	hnat_priv->lvid = 1;

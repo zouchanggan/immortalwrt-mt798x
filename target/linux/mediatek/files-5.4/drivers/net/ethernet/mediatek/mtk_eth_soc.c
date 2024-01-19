@@ -1412,7 +1412,7 @@ static int mtk_poll_rx(struct napi_struct *napi, int budget,
 				      0 : RX_DMA_GET_SPORT(trxd.rxd4) - 1;
 		}
 		
-		if (mac ==4) mac = 0; 
+		if (mac == 4) mac = 0;
 		
 		if (unlikely(mac < 0 || mac >= MTK_MAC_COUNT ||
 			     !eth->netdev[mac]))
@@ -1530,7 +1530,6 @@ release_desc:
 			rxd->rxd2 = RX_DMA_PLEN0(ring->buf_size);
 
 		ring->calc_idx = idx;
-		
 
 		done++;
 	}
@@ -1901,9 +1900,9 @@ static int mtk_rx_alloc(struct mtk_eth *eth, int ring_no, int rx_flag)
 	else {
 		struct mtk_tx_ring *tx_ring = &eth->tx_ring;
 		ring->dma = (struct mtk_rx_dma *)(tx_ring->dma +
--			     MTK_DMA_SIZE * (ring_no + 1));
+			     MTK_DMA_SIZE * (ring_no + 1));
 		ring->phys = tx_ring->phys + MTK_DMA_SIZE *
- 			     sizeof(*tx_ring->dma) * (ring_no + 1);
+			     sizeof(*tx_ring->dma) * (ring_no + 1);
 	}
 
 	if (!ring->dma)
@@ -2250,7 +2249,7 @@ static int mtk_rss_init(struct mtk_eth *eth)
 {
 	u32 val;
 
-	if (!MTK_HAS_CAPS(eth->soc->caps,  MTK_NETSYS_RX_V2)) {
+	if (!MTK_HAS_CAPS(eth->soc->caps, MTK_NETSYS_RX_V2)) {
 		/* Set RSS rings to PSE modes */
 		val =  mtk_r32(eth, MTK_LRO_CTRL_DW2_CFG(1));
 		val |= MTK_RING_PSE_MODE;
@@ -2587,7 +2586,7 @@ static int mtk_start_dma(struct mtk_eth *eth)
 				MTK_NDP_CO_PRO | MTK_MUTLI_CNT |
 				MTK_RESV_BUF | MTK_WCOMP_EN |
 				MTK_DMAD_WR_WDONE | MTK_CHK_DDONE_EN |
-				MTK_RX_2B_OFFSET , MTK_QDMA_GLO_CFG);
+				MTK_RX_2B_OFFSET, MTK_QDMA_GLO_CFG);
 		}
 		else
 			mtk_w32(eth,
@@ -3079,10 +3078,15 @@ static void mtk_pending_work(struct work_struct *work)
 	mtk_prepare_reset_fe(eth);
 
 	/* Trigger Wifi SER reset */
-	call_netdevice_notifiers(MTK_FE_START_RESET, eth->netdev[0]);
-	rtnl_unlock();
-	wait_for_completion_timeout(&wait_ser_done, 5000);
-	rtnl_lock();
+	for (i = 0; i < MTK_MAC_COUNT; i++) {
+		if (!eth->netdev[i])
+			continue;
+		call_netdevice_notifiers(MTK_FE_START_RESET, eth->netdev[i]);
+		rtnl_unlock();
+		wait_for_completion_timeout(&wait_ser_done, 5000);
+		rtnl_lock();
+		break;
+	}
 
 	while (test_and_set_bit_lock(MTK_RESETTING, &eth->state))
 		cpu_relax();
@@ -3109,7 +3113,7 @@ static void mtk_pending_work(struct work_struct *work)
 
 	/* restart DMA and enable IRQs */
 	for (i = 0; i < MTK_MAC_COUNT; i++) {
-		if (!test_bit(i, &restart))
+		if (!test_bit(i, &restart) || !eth->netdev[i])
 			continue;
 		err = mtk_open(eth->netdev[i]);
 		if (err) {
@@ -3133,6 +3137,8 @@ static void mtk_pending_work(struct work_struct *work)
 
 	/* Power up sgmii */
 	for (i = 0; i < MTK_MAC_COUNT; i++) {
+		if (!eth->netdev[i])
+			continue;
 		mac = netdev_priv(eth->netdev[i]);
 		phy_node = of_parse_phandle(mac->of_node, "phy-handle", 0);
 		if (!phy_node && eth->sgmii->regmap[i]) {
@@ -3141,11 +3147,15 @@ static void mtk_pending_work(struct work_struct *work)
 		}
 	}
 
-	call_netdevice_notifiers(MTK_FE_RESET_NAT_DONE, eth->netdev[0]);
-	pr_info("[%s] HNAT reset done !\n", __func__);
-
-	call_netdevice_notifiers(MTK_FE_RESET_DONE, eth->netdev[0]);
-	pr_info("[%s] WiFi SER reset done !\n", __func__);
+	for (i = 0; i < MTK_MAC_COUNT; i++) {
+		if (!eth->netdev[i])
+			continue;
+		call_netdevice_notifiers(MTK_FE_RESET_NAT_DONE, eth->netdev[i]);
+		pr_info("[%s] HNAT reset done !\n", __func__);
+		call_netdevice_notifiers(MTK_FE_RESET_DONE, eth->netdev[i]);
+		pr_info("[%s] WiFi SER reset done !\n", __func__);
+		break;
+	}
 
 	atomic_dec(&reset_lock);
 	if (atomic_read(&force) > 0)
@@ -3849,7 +3859,7 @@ static const struct mtk_soc_data mt7986_data = {
 	.hw_features = MTK_HW_FEATURES,
 	.required_clks = MT7986_CLKS_BITMAP,
 	.required_pctl = false,
-	.has_sram = false,
+	.has_sram = true,
 };
 
 static const struct mtk_soc_data mt7981_data = {
@@ -3858,7 +3868,7 @@ static const struct mtk_soc_data mt7981_data = {
 	.hw_features = MTK_HW_FEATURES,
 	.required_clks = MT7981_CLKS_BITMAP,
 	.required_pctl = false,
-	.has_sram = false,
+	.has_sram = true,
 };
 
 static const struct mtk_soc_data rt5350_data = {
