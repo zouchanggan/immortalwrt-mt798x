@@ -27,6 +27,9 @@
  
 +static struct hnat_desc {
 +	u32 entry : 14;
++	#if defined(CONFIG_MEDIATEK_NETSYS_RX_V2)
++	u32 fill : 1;
++	#endif
 +	u32 crsn : 5;
 +	u32 sport : 4;
 +	u32 alg : 1;
@@ -39,11 +42,8 @@
 +	u32 wcid : 10;
 +	u32 bssid : 6;
 +} __packed;
-+
-+
 +#define HIT_BIND_KEEPALIVE_DUP_OLD_HDR 0x15
 +#define skb_hnat_reason(skb) (((struct hnat_desc *)(skb->head))->crsn)
-+
  /* Returns one of the generic firewall policies, like NF_ACCEPT. */
  unsigned int
  ipt_do_table(struct sk_buff *skb,
@@ -121,6 +121,9 @@
  
 +static struct hnat_desc {
 +	u32 entry : 14;
++	#if defined(CONFIG_MEDIATEK_NETSYS_RX_V2)
++	u32 fill : 1;
++	#endif
 +	u32 crsn : 5;
 +	u32 sport : 4;
 +	u32 alg : 1;
@@ -133,11 +136,8 @@
 +	u32 wcid : 10;
 +	u32 bssid : 6;
 +} __packed;
-+
-+
 +#define HIT_BIND_KEEPALIVE_DUP_OLD_HDR 0x15
 +#define skb_hnat_reason(skb) (((struct hnat_desc *)(skb->head))->crsn)
-+
  /* Returns one of the generic firewall policies, like NF_ACCEPT. */
  unsigned int
  ip6t_do_table(struct sk_buff *skb,

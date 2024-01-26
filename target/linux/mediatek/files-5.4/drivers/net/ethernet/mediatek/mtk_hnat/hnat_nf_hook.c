@@ -877,12 +877,11 @@ static void mtk_hnat_nf_update(struct sk_buff *skb)
  
 	ct = nf_ct_get(skb, &ctinfo);
 	if (ct) {
-		if (!hnat_get_count(hnat_priv, skb_hnat_ppe(skb), skb_hnat_entry(skb), &diff)){
-			atomic64_set(&counter[CTINFO2DIR(ctinfo)].diff_packets, 0);
-			atomic64_set(&counter[CTINFO2DIR(ctinfo)].diff_bytes, 0);
-			return;}
+		if (!hnat_get_count(hnat_priv, skb_hnat_ppe(skb), skb_hnat_entry(skb), &diff))
+			return;
 
 		acct = nf_conn_acct_find(ct);
+		
 		if (acct) {
 			counter = acct->counter;
 			atomic64_add(diff.packets, &counter[CTINFO2DIR(ctinfo)].packets);

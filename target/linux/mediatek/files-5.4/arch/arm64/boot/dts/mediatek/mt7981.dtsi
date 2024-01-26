@@ -437,6 +437,7 @@
 		reset-names = "mtketh";
 		status = "disabled";
 		mtketh-ppe-num = <2>;
+		ext-devices-prefix = "usb","wwan";
 	};
 
 	sgmiisys0: syscon@10060000 {
