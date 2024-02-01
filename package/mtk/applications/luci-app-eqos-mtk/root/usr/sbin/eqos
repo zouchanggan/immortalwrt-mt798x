@@ -90,8 +90,8 @@ case "$1" in
 		iptables_start_prepare
 		start_qos $2 $3
 		iptables_start_inital
-		echo 1 wrr $(($3*1000)) > /sys/kernel/debug/hnat/qdma_sch2
-		echo 1 wrr $(($2*1000)) > /sys/kernel/debug/hnat/qdma_sch3
+		echo 0 wrr $(($3*1000)) > /sys/kernel/debug/hnat/qdma_sch2
+		echo 0 wrr $(($2*1000)) > /sys/kernel/debug/hnat/qdma_sch3
 	;;
 	"add")
 		ip="$2"
