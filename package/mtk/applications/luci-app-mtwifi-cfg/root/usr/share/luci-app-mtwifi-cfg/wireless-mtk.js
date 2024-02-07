@@ -2008,8 +2008,8 @@ return view.extend({
 		s.handleRemove = function(section_id, radioNet, ev) {
 			var radioName = radioNet.getWifiDeviceName();
 			var hwtype = uci.get('wireless', radioName, 'type');
-
-			if (hwtype == 'mtwifi')
+			var ifmode = radioNet.getMode();
+			if (hwtype == 'mtwifi' && ifmode == 'ap')
 			{
 				var wifi_sections = uci.sections('wireless', 'wifi-iface');
 				var mbssid_num = 0;

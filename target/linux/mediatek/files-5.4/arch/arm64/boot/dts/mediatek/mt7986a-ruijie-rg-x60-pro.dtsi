@@ -97,13 +97,17 @@
 			pause;
 		};
 	};
-	mdio: mdio-bus {
+		mdio: mdio-bus {
 		#address-cells = <1>;
 		#size-cells = <0>;
+ 		
+		switch:switch@0 {
+			compatible = "mediatek,mt7531";
+			reg = <31>;
+			reset-gpios = <&pio 5 0>;
+		};
 	};
 };
-
-
 &hnat {
 	mtketh-wan = "eth1";
 	mtketh-lan = "lan";
@@ -111,17 +115,6 @@
 	status = "okay";
 };
 
-&mdio {
-	switch: switch@1f {
-		compatible = "mediatek,mt7531";
-		reg = <31>;
-		reset-gpios = <&pio 5 GPIO_ACTIVE_HIGH>;
-		interrupt-controller;
-		#interrupt-cells = <1>;
-		interrupt-parent = <&pio>;
-		interrupts = <66 IRQ_TYPE_LEVEL_HIGH>;
-	};
-};
 
 &switch {
 	ports {
