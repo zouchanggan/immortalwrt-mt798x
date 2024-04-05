@@ -228,22 +228,22 @@
  				read-only;
  			};
 
- 			partition@200000 {
- 				label = "reserved";
- 				reg = <0x200000 0x0180000>;
- 				read-only;
- 			};
+ 			partition@1c0000 {
+				label = "reserved";
+				reg = <0x1c0000 0x01c0000>;
+				read-only;
+			};
 
- 			partition@380000 {
- 				label = "fip";
- 				reg = <0x380000 0x0180000>;
- 				// read-only;
- 			};
+			partition@380000 {
+				label = "fip";
+				reg = <0x380000 0x0200000>;
+				read-only;
+			};
 
- 			partition@500000 {
- 				label = "ubi";
- 				reg = <0x500000 0x7300000>;
- 			};
+			partition@580000 {
+				label = "ubi";
+				reg = <0x580000 0x7800000>;
+			};
  		};
 	};
 };
