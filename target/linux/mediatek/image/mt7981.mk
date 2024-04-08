@@ -502,6 +502,25 @@ define Device/konka_komi-a31
 endef
 TARGET_DEVICES += konka_komi-a31
 
+
+define Device/nokia_ea0326gmp
+  DEVICE_VENDOR := Nokia
+  DEVICE_MODEL := EA0326GMP
+  DEVICE_DTS := mt7981-nokia-ea0326gmp
+  DEVICE_DTS_DIR := $(DTS_DIR)/mediatek
+  SUPPORTED_DEVICES := nokia,ea0326gmp
+  UBINIZE_OPTS := -E 5
+  BLOCKSIZE := 128k
+  PAGESIZE := 2048
+  IMAGE_SIZE := 112640k
+  KERNEL_IN_UBI := 1
+  IMAGES += factory.bin
+  IMAGE/factory.bin := append-ubi | check-size $$$$(IMAGE_SIZE)
+  IMAGE/sysupgrade.bin := sysupgrade-tar | append-metadata
+endef
+TARGET_DEVICES += nokia_ea0326gmp
+
+
 define Device/imou_lc-hx3001
   DEVICE_VENDOR := Imou
   DEVICE_MODEL := LC-HX3001
