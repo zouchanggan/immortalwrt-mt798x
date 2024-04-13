@@ -299,6 +299,17 @@ define KernelPackage/mt_wifi/config
 	source "$(SOURCE)/config.in"
 endef
 
+define FIXUP_NEW_MCU_FW_API
+	@if [ "$$(CONFIG_MTK_MT7981_NEW_FW)" = "y" ] || [ "$$(CONFIG_MTK_MT7986_NEW_FW)" = "y" ]; then \
+		echo "Fixup new mcu fw API"; \
+		patch -p1 -d $(PKG_BUILD_DIR) < ./files/fix-new-mcu-fw-api.patch; \
+	fi
+	@if [ "$$(CONFIG_MTK_MT7986_NEW_FW)" = "y" ]; then \
+		echo "Fixup eeprom reading API"; \
+		patch -p1 -d $(PKG_BUILD_DIR) < ./files/eeprom-flash-api.patch; \
+	fi
+endef
+
 Hooks/Prepare/Post := FIXUP_NEW_MCU_FW_API
 
 define Build/Compile
