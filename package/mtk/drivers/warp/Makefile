@@ -11,8 +11,8 @@ PKG_NAME:=warp
 PKG_VERSION:=20221209-3e6ae1
 PKG_SOURCE:=warp_20221209-3e6ae1-src.tar.xz
 
-MT7981_NEW_WOFW_DIR := mt7981-fw-20230411
-MT7986_NEW_WOFW_DIR := mt7986-fw-20230421
+MT7981_NEW_WOFW_DIR := mt7981-fw-20231228
+MT7986_NEW_WOFW_DIR := mt7986-fw-20231228
 
 PKG_BUILD_DIR:=$(KERNEL_BUILD_DIR)/$(PKG_NAME)
 PKG_KCONFIG:= \
@@ -77,7 +77,7 @@ define KernelPackage/warp/install
 		if [ "$$(CONFIG_WARP_NEW_FW)" = "y" ]; then \
 			cp ./files/$$(MT7981_NEW_WOFW_DIR)/7981*WOCPU*_RAM_CODE_release.bin $(1)/lib/firmware/; \
 		else \
-			cp ./files/$$(MT7981_NEW_WOFW_DIR)/7981*WOCPU*_RAM_CODE_release.bin $(1)/lib/firmware/; \
+			cp $(PKG_BUILD_DIR)/bin/7981*WOCPU*_RAM_CODE_release.bin $(1)/lib/firmware/; \
 		fi; \
 	elif [ "$$(CONFIG_WARP_CHIPSET)" = "mt7986" ]; then \
 		if [ "$$(CONFIG_WARP_NEW_FW)" = "y" ]; then \
