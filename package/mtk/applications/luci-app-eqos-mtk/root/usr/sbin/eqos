@@ -39,10 +39,10 @@ iptables_stop() {
 		echo "10 0" > /sys/kernel/debug/hnat/hnat_setting
 		echo "11 30" >/sys/kernel/debug/hnat/hnat_setting
 		for i in $(seq 0 31); do
-		echo 0 0 0 0 0 4 4 > $hqos_path/qdma_txq$i
+		echo 0 0 0 0 0 4 4 > /sys/kernel/debug/hnat/qdma_txq$i
 		done
 		for i in $(seq 32 63); do
-		echo 1 0 0 0 0 4 4 > $hqos_path/qdma_txq$i
+		echo 1 0 0 0 0 4 4 > /sys/kernel/debug/hnat/qdma_txq$i
 		done	
 		echo 0 wrr 10000000 > /sys/kernel/debug/hnat/qdma_sch0
 		echo 0 wrr 10000000 > /sys/kernel/debug/hnat/qdma_sch1
@@ -70,7 +70,7 @@ iptables_start_inital() {
 		echo 0 wrr 10000000 > /sys/kernel/debug/hnat/qdma_sch0
 		echo 0 wrr 10000000 > /sys/kernel/debug/hnat/qdma_sch1
 		echo 0 0 0 0 0 0 0 > /sys/kernel/debug/hnat/qdma_txq0
-		echo 1 0 0 0 0 0 0 > /sys/kernel/debug/hnat/qdma_txq8
+		echo 1 0 0 0 0 0 0 > /sys/kernel/debug/hnat/qdma_txq32
 		echo "11 5" >/sys/kernel/debug/hnat/hnat_setting
 		uci -q set "turboacc.config.fastpath_mh_eth_hnat_bind_rate"="5"
 		uci -q commit "turboacc"
@@ -90,8 +90,8 @@ case "$1" in
 		iptables_start_prepare
 		start_qos $2 $3
 		iptables_start_inital
-		echo 0 wrr $(($3*1000)) > /sys/kernel/debug/hnat/qdma_sch2
-		echo 0 wrr $(($2*1000)) > /sys/kernel/debug/hnat/qdma_sch3
+		echo 1 wrr $(($3*1000)) > /sys/kernel/debug/hnat/qdma_sch2
+		echo 1 wrr $(($2*1000)) > /sys/kernel/debug/hnat/qdma_sch3
 	;;
 	"add")
 		ip="$2"
