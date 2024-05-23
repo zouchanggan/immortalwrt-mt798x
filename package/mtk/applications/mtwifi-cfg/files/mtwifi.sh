@@ -22,6 +22,7 @@ detect_mtwifi() {
 					htbsscoex="1"
 					ssid="ImmortalWrt-2.4G"
 					dbdc_main="1"
+					txpower="100"
 					channel="auto"
 				else
 					band="5g"
@@ -30,6 +31,7 @@ detect_mtwifi() {
 					htbsscoex="0"
 					ssid="ImmortalWrt-5G"
 					channel="36"
+					txpower="100"
 					dbdc_main="0"
 				fi
 				uci -q batch <<-EOF
@@ -40,7 +42,7 @@ detect_mtwifi() {
 					set wireless.${dev}.band=${band}
 					set wireless.${dev}.dbdc_main=${dbdc_main}
 					set wireless.${dev}.channel=${channel}
-					set wireless.${dev}.txpower=100
+					set wireless.${dev}.txpower=${txpower}
 					set wireless.${dev}.htmode=${htmode}
 					set wireless.${dev}.country=CN
 					set wireless.${dev}.mu_beamformer=1

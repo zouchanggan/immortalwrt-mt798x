@@ -250,8 +250,6 @@ return view.extend({
 		o = s.option(form.ListValue, 'fullcone', _('Full cone NAT'),
 			_('Full cone NAT (NAT1) can improve gaming performance effectively.'));
 		o.value('0', _('Disable'))
-		if (features.hasXTFULLCONENAT)
-			o.value('1', _('XT_FULLCONE_NAT'));
 		o.value('2', _('Boardcom_FULLCONE_NAT'));
 		o.default = '0';
 		o.rmempty = false;
